@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\TwoFactorAuthentication;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Verified;
@@ -21,33 +22,28 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('pages.home');
-})->name('home')->middleware(['auth','2FA','verified']);
+})->name('home')->middleware(['auth','2FA']);
 
-Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login')->middleware('guest');
-Route::post('/login', [AuthController::class, 'login'])->name('login.submit')->middleware();
+Route::middleware(['guest'])->group(function () {
+    Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+    Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
+    Route::get('/verify-2fa', [TwoFactorAuthentication::class, 'showVerifyForm'])->name('2fa.form');
+});
+
+Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-
-Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
 Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
-
-Route::get('/verify-2fa', [TwoFactorAuthentication::class, 'showVerifyForm'])->name('2fa.form')->middleware(['auth','guest', 'verified']);
 Route::post('/verify-2fa', [TwoFactorAuthentication::class, 'verify'])->name('2fa.verify');
 
+
+Route::get('/email/verify/{id}', [EmailVerificationController::class, 'verifyEmail'])
+    ->name('verification.verify')
+    ->middleware('signed');
 
 /* Validación a rutas inexistentes */
 Route::fallback(function () {
     return redirect()->route('home');
 });
-
-// Verificación de correo (rutas firmadas)
-Route::get('/email/verify', function () {
-    return view('auth.verify-email'); // Vista para pedir al usuario que verifique su correo
-})->middleware('auth')->name('verification.notice');
-
-Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
-    $request->fulfill(); // Marca el correo como verificado
-    return redirect('/'); // Redirige tras verificar
-})->middleware(['auth', 'signed'])->name('verification.verify');
 
 // Reenviar el correo de verificación
 Route::post('/email/resend', function (Request $request) {

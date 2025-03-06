@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 
 class AuthController extends Controller
 {
@@ -28,13 +30,23 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $request['name'],
             'email' => $request['email'],
-            'password' => Hash::make($request['password'])
+            'password' => Hash::make($request['password'],),
+            'email_verified_at' => null,
         ]);
 
-        // Enviar email de verificación
-        $user->sendEmailVerificationNotification();
-        Auth::login($user);
-        Auth::user()->generateTwoFactorCode();
+        // Generar la URL firmada con expiración de 60 minutos
+        $signedUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(60),
+            ['id' => $user->id]
+        );
+
+        // Enviar el correo de verificación
+        Mail::raw("Haz clic en este enlace para verificar tu correo: $signedUrl", function ($message) use ($user) {
+            $message->to($user->email)
+                ->subject('Verifica tu correo');
+        });
+
         return redirect()->route('login');
     }
 
@@ -51,21 +63,20 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request)
     {
-        // Intentar autenticar
-        if (Auth::attempt($request->only('email', 'password'))) {
-            $request->session()->regenerate();
-            $user = Auth::user();
-            $user ->two_factor_verified = false;
-            $user->save();
-            // Si el usuario tiene 2FA activado pero no ha verificado, redirigirlo a la verificación
-            if (!Auth::user()->two_factor_verified) {
-                Auth::user()->generateTwoFactorCode();
-                return redirect()->route('2fa.form');
-            }
-            return redirect()->route('/');
+        // Validar credenciales sin iniciar sesión
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return back()->withErrors(['email' => 'Las credenciales no son correctas']);
+        }
+        if (!$user->hasVerifiedEmail()) {
+            return back()->withErrors(['email' => 'Debes verificar tu correo antes de continuar.']);
         }
 
-        return back()->withErrors(['email' => 'Las credenciales no son correctas']);
+        $user->generateTwoFactorCode();
+        session(['pending_user_id' => $user->id]); // Guardar ID temporalmente
+        return redirect()->route('2fa.form');
+        
     }
 
     /**

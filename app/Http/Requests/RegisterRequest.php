@@ -26,7 +26,16 @@ class RegisterRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'], // Asegura que el email sea único
-            'password' => ['required', 'string', 'min:8', 'confirmed'], // Confirmación de la contraseña
+            'password' => [
+                'required',
+                'string',
+                'min:8', // Mínimo 8 caracteres
+                'confirmed', // Confirmación de la contraseña
+                'regex:/[A-Z]/', // Al menos una letra mayúscula
+                'regex:/[a-z]/', // Al menos una letra minúscula
+                'regex:/[0-9]/', // Al menos un número
+                'regex:/[\W_]/', // Al menos un carácter especial
+            ],
             'g-recaptcha-response' => 'required|captcha', // Validación del reCAPTCHA
         ];
     }
@@ -44,6 +53,7 @@ class RegisterRequest extends FormRequest
             'email.unique' => 'Este correo electrónico ya está registrado.',
             'password.required' => 'La contraseña es obligatoria.',
             'password.confirmed' => 'Las contraseñas no coinciden.',
+            'password.regex' => 'La contraseña debe contener al menos una letra mayúscula, una letra minúscula, un número y un carácter especial.',
             'g-recaptcha-response.required' => 'Por favor, completa el reCAPTCHA.',
         ];
     }

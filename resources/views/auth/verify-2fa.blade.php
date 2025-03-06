@@ -34,6 +34,7 @@
                                 <label for="2fa_code" class="form-label">Código de verificación</label>
                                 <input type="text" id="2fa_code" name="2fa_code" class="form-control" required>
                             </div>
+                            <x-captcha />
                             <button type="submit" class="btn btn-primary w-100">Verificar</button>
                         </form>
                     </div>

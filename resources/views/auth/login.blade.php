@@ -1,9 +1,11 @@
 @extends('layouts.app')
 
 @section('content')
+
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-md-6">
+        <p>El puerto actual es: {{ $_SERVER['SERVER_PORT'] }}</p>
             <div class="card shadow-sm">
                 <div class="card-header text-center bg-primary text-white">
                     <h4>Iniciar Sesión</h4>
