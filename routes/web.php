@@ -30,6 +30,7 @@ Route::middleware(['guest'])->group(function () {
     Route::get('/verify-2fa', [TwoFactorAuthentication::class, 'showVerifyForm'])->name('2fa.form');
 });
 
+
 Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
